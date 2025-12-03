@@ -18,7 +18,30 @@ const httpServer = createServer(app);
 
 // CORS configuration
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
-app.use(cors({ origin: frontendUrl, credentials: true }));
+const allowedOrigins = [
+  frontendUrl,
+  'http://localhost:5174',
+  'https://attensi-spin.vercel.app'
+];
+
+console.log('🌐 CORS Configuration:');
+console.log('   FRONTEND_URL env var:', process.env.FRONTEND_URL);
+console.log('   Allowed origins:', allowedOrigins);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('⚠️  Blocked CORS request from:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -42,7 +65,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData
   httpServer,
   {
     cors: {
-      origin: frontendUrl,
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },
